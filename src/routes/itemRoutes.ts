@@ -11,7 +11,7 @@ router.post('/updateItem',authenticateToken,upload.single('image'), updateItem);
 
 
 
-router.get('/getItems', getAllItems);
+router.get('/getItems',authenticateToken, getAllItems);
 
 router.get('/getAllItemsCount', getAllItemsCount);
 
