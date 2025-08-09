@@ -24,6 +24,7 @@ import dotenv from 'dotenv';
 import { DataTypes } from 'sequelize';
 import cors from 'cors';
 import { sequelize } from './config/database'; // Updated import
+import { Op } from 'sequelize';
 import User from './models/user';
 import UserRole from './models/userRole';
 import Role from './models/role';
@@ -220,8 +221,55 @@ Item.hasOne(Pricing, { foreignKey: 'itemId', as: 'itemPricing' }); // Associate 
 Pricing.belongsTo(Item, { foreignKey: 'itemId', as: 'pricingItem' }); // Updated alias to avoid conflict
 
 
-sequelize.sync({ force: false }).then(() => {
+
+sequelize.sync({ force: false }).then(async () => {
   console.log('Database synced successfully!');
+
+  // --- Super Admin Creation Logic ---
+  const superAdminData = {
+    firstName: 'prasanth',
+    lastName: 'tella',
+    email: 'prasanth.tella@gmail.com', // Change as needed
+    mobile: '9490219062', // Change as needed
+  };
+
+  // Check if user exists by email or mobile
+  const existingUser = await User.findOne({
+    where: {
+      [Op.or]: [
+        { email: superAdminData.email },
+        { mobile: superAdminData.mobile },
+      ],
+    },
+  });
+
+  let superAdminUser;
+  if (!existingUser) {
+    superAdminUser = await User.create(superAdminData);
+    console.log('Super admin user created.');
+  } else {
+    superAdminUser = existingUser;
+    console.log('Super admin user already exists.');
+  }
+
+  // Ensure superadmin role exists
+  let superAdminRole = await Role.findOne({ where: { name: 'superadmin' } });
+  if (!superAdminRole) {
+    superAdminRole = await Role.create({ name: 'superadmin', status: 'active' });
+    console.log('Superadmin role created.');
+  }
+
+  // Assign superadmin role to user if not already assigned
+  const userRoleExists = await UserRole.findOne({
+    where: { userId: superAdminUser.id, roleId: superAdminRole.id },
+  });
+  if (!userRoleExists) {
+    await UserRole.create({ userId: superAdminUser.id, roleId: superAdminRole.id, status: 'active' });
+    console.log('Superadmin role assigned to user.');
+  } else {
+    console.log('Superadmin role already assigned to user.');
+  }
+  // --- End Super Admin Creation Logic ---
 });
 
 app.use(express.json());

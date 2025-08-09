@@ -32,29 +32,18 @@ export const loginWithMobile = async (req: Request, res: Response) => {
 
   try {
     // Check if the user exists
-    let user = await User.findOne({ where: { mobile }, transaction });
+    const user = await User.findOne({ where: { mobile }, transaction });
     if (!user) {
-      // Create a new user if not found
-      user = await User.create({ mobile }, { transaction });
-      logger.info(`New user created with mobile: ${mobile}`);
-
-      // Assign the default "User" role to the new user
-      const userRole = await Role.findOne({ where: { name: 'User' }, transaction });
-      if (userRole) {
-        await UserRole.create({ userId: user.id, roleId: userRole.id }, { transaction });
-        logger.info(`Default role "User" assigned to user with mobile: ${mobile}`);
-      } else {
-        logger.warn('Default role "User" not found in the database');
-      }
+      logger.warn(`Login attempt with unregistered mobile: ${mobile}`);
+      await transaction.rollback();
+      return res
+        .status(statusCodes.NOT_FOUND)
+        .json({ message: "user not found with this mobile number" });
     }
 
     // Generate OTP and expiry time
     let otp = generateOtp();
-
-    if (mobile == "9052519059") {
-      otp = '123456'
-    }
-    // const otp = '123456';
+   
     const expiresAt = getExpiryTimeInKolkata(60); // OTP expires in 60 seconds
 
     // Save OTP to the database
@@ -62,7 +51,7 @@ export const loginWithMobile = async (req: Request, res: Response) => {
 
     await transaction.commit(); // Commit the transaction
 
-    let smsres = await sendOTPSMS(mobile, otp)
+    await sendOTPSMS(mobile, otp);
 
     logger.info(`OTP generated for mobile ${mobile}: ${otp}`);
     res
@@ -137,9 +126,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
 
     // Check if the OTP has expired
     const currentTime = Math.floor(Date.now() / 1000); // Current time in Unix timestamp
-    console.log("object", currentTime)
-    console.log("otpRecord.expiresAt", otpRecord.expiresAt)
-    console.log("otpRecord.expiresAt", currentTime > otpRecord.expiresAt)
+    
     if (currentTime > otpRecord.expiresAt && mobile != "9052519059") {
       logger.warn(`Expired OTP for mobile ${mobile}`);
       await otpRecord.destroy({ transaction }); // Delete the expired OTP
