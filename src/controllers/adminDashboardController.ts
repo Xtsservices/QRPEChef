@@ -332,14 +332,16 @@ export const getCanteenCountAndTotalRevenue = async (req: Request, res: Response
     const weekStart = now.clone().startOf('week').unix();
     const monthStart = now.clone().startOf('month').unix();
     const nowUnix = now.unix();
-
-    // Revenue for this week
-    const weekRevenue = await Order.sum('totalAmount', {
+    const todayStart = now.clone().startOf('day').unix();
+    // Revenue for today
+    const todayRevenue = await Order.sum('totalAmount', {
       where: {
-        status: 'placed',
-        createdAt: { [Op.gte]: weekStart, [Op.lte]: nowUnix },
+      status: 'placed',
+      createdAt: { [Op.gte]: todayStart, [Op.lte]: nowUnix },
       },
     });
+
+    // Revenue for this week (removed)
     // Revenue for this month
     const monthRevenue = await Order.sum('totalAmount', {
       where: {
@@ -349,7 +351,6 @@ export const getCanteenCountAndTotalRevenue = async (req: Request, res: Response
     });
 
     // Orders count for today and this week
-    const todayStart = now.clone().startOf('day').unix();
     const todayOrders = await Order.count({
       where: {
         status: 'placed',
@@ -367,8 +368,8 @@ export const getCanteenCountAndTotalRevenue = async (req: Request, res: Response
       message: 'Total revenue and order metrics fetched successfully',
       data: {
         totalCanteens,
-        weekRevenue: weekRevenue || 0,
         monthRevenue: monthRevenue || 0,
+        todayRevenue: todayRevenue || 0,
         todayOrders: todayOrders || 0,
         weekOrders: weekOrders || 0,
       },

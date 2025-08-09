@@ -279,7 +279,7 @@ export const getProfile = async (req: Request, res: Response): Promise<Response>
 
     // Return the beautified user profile
     return res.status(statusCodes.SUCCESS).json({
-      message: getMessage('success.profileFetched'),
+      message: "Profile fetched successfully",
       data: beautifyUser(user),
     });
   } catch (error: unknown) {

@@ -9,8 +9,10 @@ import menuConfigurationRoutes from './routes/menuConfigurationRoutes';
 import menuRoutes from './routes/menuRoutes';
 import orderRoutes from './routes/orderRoutes';
 import adminDashboardRoutes from './routes/adminDashboardRoutes';
+import categoryRoutes from './routes/categoryRoutes';
 import voiceRoutes from './routes/voiceRoutes';
 import paymentSdkRoutes from './routes/paymentSdkRoutes'; // Import payment SDK routes
+
 import { Buffer } from 'buffer';
 import base64 from 'base-64'; // Install via: npm install base-64
 
@@ -278,6 +280,9 @@ app.use('/api/canteen', canteenRoutes);
 
 app.use('/api/user', userRoutes);
 
+
+app.use('/api/category', categoryRoutes);
+
 app.use('/api/item', itemRoutes);
 
 app.use('/api/menu', menuRoutes);
@@ -294,6 +299,8 @@ app.use('/api/voice', voiceRoutes);
 
 //payment method sdk
 app.use('/api/paymentsdk', paymentSdkRoutes);
+
+
 
 // GET endpoint to fetch payment method counts
 // Self-invoked function to get payment method counts
