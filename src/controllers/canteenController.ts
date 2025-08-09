@@ -18,8 +18,17 @@ export const createCanteen = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  const { canteenName, canteenCode, firstName, lastName, email, mobile } =
-    req.body;
+  
+
+  // Check if body exists and is not empty
+  if (!req.body || Object.keys(req.body).length === 0) {
+    logger.error('Request body is missing or empty');
+    return res.status(statusCodes.BAD_REQUEST).json({
+      message: "Request body is required.",
+    });
+  }
+
+  const { canteenName, canteenCode, firstName, lastName, email, mobile } = req.body;
   const canteenImage = req.file?.buffer; // Get the binary data of the uploaded image
 
   // Validate the request body
@@ -34,7 +43,7 @@ export const createCanteen = async (
   if (error) {
     logger.error(`Validation error: ${error.details[0].message}`);
     return res.status(statusCodes.BAD_REQUEST).json({
-      message: getMessage("error.validationError"),
+      message: "Invalid request data: " + error.details[0].message,
     });
   }
 
@@ -42,6 +51,7 @@ export const createCanteen = async (
 
   try {
     // Check if a canteen with the same code already exists
+
     const existingCanteen = await Canteen.findOne({
       where: { canteenCode },
       transaction,
