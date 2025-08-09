@@ -81,16 +81,16 @@ export const createCanteenValidation = Joi.object({
 
 export const createItemValidation = Joi.object({
   name: Joi.string().required().messages({
-    'string.empty': messages[language].validation.nameRequired || 'Name is required.',
-    'any.required': messages[language].validation.nameRequired || 'Name is required.',
+    'string.empty':  'Name is required.',
+    'any.required':  'Name is required.',
   }),
   description: Joi.string().required().messages({
-    'string.empty': messages[language].validation.nameRequired || 'Name is required.',
-    'any.required': messages[language].validation.nameRequired || 'Name is required.',
+    'string.empty':  'Description is required.',
+    'any.required':  'Description is required.',
   }),
   currency: Joi.string().required().messages({
-    'string.empty': messages[language].validation.nameRequired || 'Name is required.',
-    'any.required': messages[language].validation.nameRequired || 'Name is required.',
+    'string.empty':  'Currency is required.',
+    'any.required':  'Currency is required.',
   }),
 
   

@@ -17,6 +17,13 @@ export const createItem = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
+
+  if (!req.body || Object.keys(req.body).length === 0) {
+    logger.error("Request body is missing or empty");
+    return res.status(statusCodes.BAD_REQUEST).json({
+      message: "Request body is required",
+    });
+  }
   const {
     name,
     description,
@@ -43,11 +50,11 @@ export const createItem = async (
     startDate,
     endDate,
   });
-  console.log("error", error);
   if (error) {
     logger.error(`Validation error: ${error.details[0].message}`);
     return res.status(statusCodes.BAD_REQUEST).json({
       message: getMessage("error.validationError"),
+      details: error.details[0].message,
     });
   }
 
@@ -167,7 +174,7 @@ export const getAllItems = async (
 
     logger.info("Items fetched successfully");
     return res.status(statusCodes.SUCCESS).json({
-      message: getMessage("success.itemsFetched"),
+      message: "Items fetched successfully",
       data: itemsWithBase64Images,
     });
   } catch (error: unknown) {
@@ -175,7 +182,7 @@ export const getAllItems = async (
       `Error fetching items: ${error instanceof Error ? error.message : error}`
     );
     return res.status(statusCodes.INTERNAL_SERVER_ERROR).json({
-      message: getMessage("error.internalServerError"),
+      message: "Error fetching items",
     });
   }
 };
