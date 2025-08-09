@@ -1,3 +1,6 @@
+
+// API: Get total canteens count and total revenue from placed orders
+
 import { Request, Response } from 'express';
 import logger from '../common/logger';
 import { getMessage } from '../common/utils';
@@ -312,6 +315,66 @@ export const getTotalAmount = async (req: Request, res: Response): Promise<Respo
     });
   } catch (error: unknown) {
     logger.error(`Error fetching total amount: ${error instanceof Error ? error.message : error}`);
+    return res.status(statusCodes.INTERNAL_SERVER_ERROR).json({
+      message: getMessage('error.internalServerError'),
+    });
+  }
+};
+
+export const getCanteenCountAndTotalRevenue = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    // Count all canteens
+    const totalCanteens = await Canteen.count();
+   
+
+    // Calculate start of week and month in Unix timestamp (seconds)
+    const now = moment().tz('Asia/Kolkata');
+    const weekStart = now.clone().startOf('week').unix();
+    const monthStart = now.clone().startOf('month').unix();
+    const nowUnix = now.unix();
+
+    // Revenue for this week
+    const weekRevenue = await Order.sum('totalAmount', {
+      where: {
+        status: 'placed',
+        createdAt: { [Op.gte]: weekStart, [Op.lte]: nowUnix },
+      },
+    });
+    // Revenue for this month
+    const monthRevenue = await Order.sum('totalAmount', {
+      where: {
+        status: 'placed',
+        createdAt: { [Op.gte]: monthStart, [Op.lte]: nowUnix },
+      },
+    });
+
+    // Orders count for today and this week
+    const todayStart = now.clone().startOf('day').unix();
+    const todayOrders = await Order.count({
+      where: {
+        status: 'placed',
+        createdAt: { [Op.gte]: todayStart, [Op.lte]: nowUnix },
+      },
+    });
+    const weekOrders = await Order.count({
+      where: {
+        status: 'placed',
+        createdAt: { [Op.gte]: weekStart, [Op.lte]: nowUnix },
+      },
+    });
+
+    return res.status(statusCodes.SUCCESS).json({
+      message: 'Total revenue and order metrics fetched successfully',
+      data: {
+        totalCanteens,
+        weekRevenue: weekRevenue || 0,
+        monthRevenue: monthRevenue || 0,
+        todayOrders: todayOrders || 0,
+        weekOrders: weekOrders || 0,
+      },
+    });
+  } catch (error: unknown) {
+    logger.error(`Error fetching canteen count, total orders, and total revenue: ${error instanceof Error ? error.message : error}`);
     return res.status(statusCodes.INTERNAL_SERVER_ERROR).json({
       message: getMessage('error.internalServerError'),
     });

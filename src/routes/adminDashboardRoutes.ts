@@ -1,5 +1,5 @@
 import express from 'express';
-import { adminDashboard,getTotalAmount,getTotalCanteens,getTotalItems,getTotalMenus,getTotalOrders } from '../controllers/adminDashboardController';
+import { adminDashboard,getTotalAmount,getTotalCanteens,getTotalItems,getTotalMenus,getTotalOrders,getCanteenCountAndTotalRevenue } from '../controllers/adminDashboardController';
 import authenticateToken from '../middlewares/authMiddleware'; // Import the authentication middleware
 
 
@@ -12,6 +12,10 @@ router.get('/getTotalCanteens', getTotalCanteens);
 router.get('/getTotalItems', getTotalItems);
 router.get('/getTotalMenus', getTotalMenus);
 router.get('/getTotalOrders', getTotalOrders);
+// Route to get canteen count and total revenue from placed orders
+router.get('/getCanteenCountAndTotalRevenue', authenticateToken, getCanteenCountAndTotalRevenue);
+
+
 
 
 export default router;
