@@ -43,6 +43,7 @@ import Cart from './models/cart'; // Import Cart
 import Order from './models/order';
 import OrderItem from './models/orderItem';
 import Payment from './models/payment';
+import Category from './models/category'; // Import Category model
 import axios from 'axios';
 
 import { v4 as uuidv4 } from 'uuid';
@@ -221,6 +222,12 @@ CartItem.belongsTo(MenuItem, { as: 'menuItem', foreignKey: 'itemId' });
 // Associate Item with Pricing
 Item.hasOne(Pricing, { foreignKey: 'itemId', as: 'itemPricing' }); // Associate Item with Pricing
 Pricing.belongsTo(Item, { foreignKey: 'itemId', as: 'pricingItem' }); // Updated alias to avoid conflict
+
+
+// Item and Category association
+Item.belongsTo(Category, { foreignKey: 'categoryId', as: 'itemCategory' }); // Item belongs to a Category
+Category.hasMany(Item, { foreignKey: 'categoryId', as: 'categoryItems' }); // Category has many Items
+
 
 
 

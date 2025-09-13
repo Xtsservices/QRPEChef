@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { Transaction } from "sequelize";
 import moment from "moment";
-import { Item, Pricing } from "../models"; // Adjust the import paths for your models
+import { Category, Item, Pricing } from "../models"; // Adjust the import paths for your models
 // Update the import path below to the correct relative path where your utils file is located.
 // For example, if utils.ts is in src/utils/utils.ts, use '../utils/utils'
 import logger from "../common/logger";
@@ -17,121 +17,145 @@ export const createItem = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-
-  if (!req.body || Object.keys(req.body).length === 0) {
-    logger.error("Request body is missing or empty");
-    return res.status(statusCodes.BAD_REQUEST).json({
-      message: "Request body is required",
-    });
-  }
-  const {
-    name,
-    description,
-    type,
-    quantity,
-    quantityUnit,
-    price,
-    startDate,
-    endDate,
-  } = req.body;
-  const image = req.file?.buffer; // Get the binary data of the uploaded image
-  const status = req.body.status || "active"; // Default status to 'active' if not provided
-  const currency = req.body.currency || "INR"; // Default currency to 'INR' if not provided
-
-  // Validate the request body
-  const { error } = createItemValidation.validate({
-    name,
-    description,
-    type,
-    quantity,
-    quantityUnit,
-    price,
-    currency,
-    startDate,
-    endDate,
-  });
-  if (error) {
-    logger.error(`Validation error: ${error.details[0].message}`);
-    return res.status(statusCodes.BAD_REQUEST).json({
-      message: getMessage("error.validationError"),
-      details: error.details[0].message,
-    });
-  }
-
-  // Validate and convert startDate and endDate to Unix timestamps
-  const startDateUnix = moment(startDate, "DD-MM-YYYY", true);
-  const endDateUnix = moment(endDate, "DD-MM-YYYY", true);
-
-  if (!startDateUnix.isValid() || !endDateUnix.isValid()) {
-    logger.error("Invalid date format. Expected format is dd-mm-yyyy.");
-    return res.status(statusCodes.BAD_REQUEST).json({
-      message: getMessage("error.invalidDateFormat"),
-    });
-  }
-
-  const transaction: Transaction = await sequelize.transaction();
+  let transaction: Transaction | null = null;
 
   try {
-    // Check if an item with the same name already exists
+    if (!req.body || Object.keys(req.body).length === 0) {
+      logger.error("Request body is missing or empty");
+      return res.status(statusCodes.BAD_REQUEST).json({
+        message: "Request body is required",
+      });
+    }
+    const {
+      name,
+      description,
+      type,
+      quantity,
+      quantityUnit,
+      price,
+      startDate,
+      endDate,
+      categoryId,
+    } = req.body;
+    const image = req.file?.buffer; // Get the binary data of the uploaded image
+    const status = req.body.status || "active"; // Default status to 'active' if not provided
+    const currency = req.body.currency || "INR"; // Default currency to 'INR' if not provided
+
+    // Validate the request body
+    const { error } = createItemValidation.validate({
+      name,
+      description,
+      type,
+      quantity,
+      quantityUnit,
+      price,
+      currency,
+      startDate,
+      endDate,
+      categoryId,
+    });
+    if (error) {
+      logger.error(`Validation error: ${error.details[0].message}`);
+      return res.status(statusCodes.BAD_REQUEST).json({
+        message: getMessage("error.validationError"),
+        details: error.details[0].message,
+      });
+    }
+
+    // Validate and convert startDate and endDate to Unix timestamps
+    const startDateUnix = moment(startDate, "DD-MM-YYYY", true);
+    const endDateUnix = moment(endDate, "DD-MM-YYYY", true);
+
+    if (!startDateUnix.isValid() || !endDateUnix.isValid()) {
+      logger.error("Invalid date format. Expected format is dd-mm-yyyy.");
+      return res.status(statusCodes.BAD_REQUEST).json({
+        message: getMessage("error.invalidDateFormat"),
+      });
+    }
+
+    transaction = await sequelize.transaction();
+
+    // Check category
+    if (categoryId) {
+      const category = await Category.findOne({
+        where: { id: categoryId, status: "active" },
+        transaction,
+      });
+
+      if (!category) {
+        throw new Error("Category not found or inactive");
+      }
+    }
+
+    // Check existing item
     const existingItem = await Item.findOne({
       where: { name, status: "active" },
       transaction,
     });
 
     if (existingItem) {
-      logger.warn(`Item with name "${name}" already exists`);
-      return res.status(statusCodes.BAD_REQUEST).json({
-        message: getMessage("item.itemNameExists"),
-      });
+      throw new Error("Item already exists");
     }
 
-   
-
-    // Create a new item
+    // Create item
     const item = await Item.create(
       {
-        name,
-        description,
-        type,
-        quantity,
-        quantityUnit,
-        image,
-        status,
+        name: String(name),
+        description: description || null,
+        type: String(type),
+        quantity: Number(quantity),
+        categoryId: categoryId || null,
+        quantityUnit: quantityUnit || null,
+        image: image || null,
+        status: String(status),
       },
       { transaction }
     );
-
-
-    // Create the pricing for the item
-    const pricing = await Pricing.create(
+    // Create pricing
+   
+    await Pricing.create(
       {
         itemId: item.id,
-        price,
+        price: Number(price),
         currency,
-        startDate: startDateUnix.unix(), // Convert to Unix timestamp
-        endDate: endDateUnix.unix(), // Convert to Unix timestamp
+        startDate: startDateUnix.unix(),
+        endDate: endDateUnix.unix(),
         status,
+        
       },
       { transaction }
     );
+    console.log("Pricing created successfully");
 
-    // Commit the transaction
     await transaction.commit();
+    transaction = null;
 
-    logger.info(`Item created successfully: ${name}`);
+    console.log(`Item created successfully: ${name}`);
     return res.status(statusCodes.SUCCESS).json({
       message: getMessage("success.itemCreated"),
-      data: { item, pricing },
+      data: { item },
     });
   } catch (error: unknown) {
-    // Rollback the transaction in case of an error
-    await transaction.rollback();
+    if (transaction) {
+      await transaction.rollback();
+    }
 
+    logger.error(
+      `Error creating item: ${error instanceof Error ? error.message : error}`
+    );
+
+    // Handle specific error cases
     if (error instanceof Error) {
-      console.log(error)
-      logger.error(`Error creating item: ${error.message}`);
-    } else {
-      logger.error(`Unknown error creating item: ${error}`);
+      if (error.message === "Category not found or inactive") {
+        return res.status(statusCodes.NOT_FOUND).json({
+          message: "Category not found or inactive",
+        });
+      }
+      if (error.message === "Item already exists") {
+        return res.status(statusCodes.BAD_REQUEST).json({
+          message: getMessage("item.itemNameExists"),
+        });
+      }
     }
 
     return res.status(statusCodes.INTERNAL_SERVER_ERROR).json({
@@ -149,10 +173,14 @@ export const getAllItems = async (
     const items = await Item.findAll({
       where: { status: "active" },
       include: [
-        {
-          model: Pricing,
-          as: "pricing",
-        },
+      {
+        model: Pricing,
+        as: "pricing",
+      },
+      {
+        model: Category,
+        as: "itemCategory",
+      },
       ],
     });
 

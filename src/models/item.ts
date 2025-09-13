@@ -12,6 +12,7 @@ class Item extends Model {
   public quantity!: number; // Quantity of the item
   public quantityUnit!: string; // Unit of the quantity (e.g., 'ml', 'grams')
   public image!: Buffer | null; // Binary data for the image
+  public categoryId!: number | null;
   public createdById!: number | null;
   public updatedById!: number | null;
   public createdAt!: number; // Unix timestamp
@@ -38,6 +39,7 @@ Item.init(
       type: DataTypes.ENUM('veg', 'non-veg'), // Restrict to 'veg' or 'non-veg'
       allowNull: false,
     },
+  
     status: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -54,6 +56,10 @@ Item.init(
     },
     image: {
       type: DataTypes.BLOB('long'), // Store binary data for the image
+      allowNull: true,
+    },
+    categoryId: {
+      type: DataTypes.INTEGER,
       allowNull: true,
     },
     createdById: {

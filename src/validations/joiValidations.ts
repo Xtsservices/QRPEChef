@@ -92,6 +92,10 @@ export const createItemValidation = Joi.object({
     'string.empty':  'Currency is required.',
     'any.required':  'Currency is required.',
   }),
+  categoryId: Joi.number().integer().optional().messages({
+    'number.base': 'Category ID must be a number.',
+    'number.integer': 'Category ID must be an integer.',
+  }),
 
   
   type: Joi.string().valid('veg', 'non-veg').required().messages({

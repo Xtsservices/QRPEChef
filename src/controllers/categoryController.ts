@@ -12,7 +12,7 @@ export const createCategory = async (req: Request, res: Response): Promise<Respo
         message: 'Request body is required',
       });
     }
-    const { name, description } = req.body;
+    let { name, description } = req.body;
 
     
     if (!name) {
@@ -20,6 +20,8 @@ export const createCategory = async (req: Request, res: Response): Promise<Respo
         message: 'Category name is required',
       });
     }
+    name=name.toLowerCase();
+   
     // Check if category already exists
     const existing = await Category.findOne({ where: { name } });
     if (existing) {
